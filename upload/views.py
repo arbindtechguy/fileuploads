@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 import os
 import glob
 import shutil
-
+import boto3
 
 # Create your views here.
 def index(request):
@@ -18,35 +18,37 @@ def handleUpload(request):
     if parts == '':
         parts = 10
     parts = int(parts)
+
     try:
         handle_uploaded_file(file, parts)
         messages.add_message(request, messages.SUCCESS, 'ファイルが正常にアップロードされました。')
     except:
         messages.add_message(request, messages.WARNING, 'ファイルのアップロード中に問題が発生しました。もう一度お試しください。')
-    return redirect('index')
+    return redirect('upload:index')
 
 def handle_uploaded_file(f, parts):
     parts = parts -1
     projDir = os.path.dirname(__file__)
-    tmpDir = projDir + '/videos/' + "tmp." + f.name
+    tmpDir = projDir +'/videos/' + "tmp." + f.name
     size = int(f.size / parts)
 
     if (os.path.isdir(tmpDir)):
         os.stat(tmpDir)
-        continue_upload(tmpDir, size, parts, f);
+        continue_upload(tmpDir, size, parts, f)
     else:
         os.mkdir(tmpDir)
         n = 1
         for chunk in f.chunks(size):
             dest = tmpDir + "/" + str(n)
-            with open(dest, 'wb+') as dest: 
-                dest.write(chunk)
+            # with open(dest, 'wb+') as dest:
+            upload_file(chunk, dest)
+                # dest.write(chunk)
             n = n + 1
-    mergeFiles(tmpDir, f.name)
+    # mergeFiles(tmpDir, f.name)
 
 def continue_upload(tmpDir, size, parts, f):
     n = 1
-    oldFiles = glob.glob(tmpDir + "/*" );
+    oldFiles = glob.glob(tmpDir + "/*" )
 
     for uploadChunk in f.chunks(size):
         dest = tmpDir + "/" + str(n)
@@ -79,7 +81,7 @@ def mergeFiles(oldDir, fileName):
 def gallery(request):
     folder = os.path.dirname(__file__) + '/videos/' 
     files = glob.glob(folder + "*.*")
-    return render(request, 'upload/gallery.html', {'files': files});
+    return render(request, 'upload/gallery.html', {'files': files})
 
 def clearGallery(request):
     folder = os.path.dirname(__file__) + '/videos/'
@@ -90,4 +92,19 @@ def clearGallery(request):
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path)
     messages.add_message(request, messages.SUCCESS, 'すべてのファイルが正常に削除されました。')
-    return redirect('index')
+    return redirect('upload:index')
+
+def upload_file(source, destination):
+    session = boto3.Session()
+    s3_client = session.client("s3")
+
+    try:
+        print("Uploading file: {}".format(source))
+
+        tc = boto3.s3.transfer.TransferConfig()
+        t = boto3.s3.transfer.S3Transfer(client=s3_client, config=tc)
+
+        t.upload_file(source, "uploadfolder", destination)
+
+    except Exception as e:
+        print("Error uploading: {}".format(e))

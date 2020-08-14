@@ -1,11 +1,11 @@
 {
     "dev": {
-        "aws_region": "us-east-1",
+        "aws_region": "us-east-2",
         "django_settings": "fileuploads.settings",
         "profile_name": "default",
         "project_name": "fileuploads",
-        "runtime": "python3.6",
-        "s3_bucket": "zappa-uw5kwe7c4"
+        "runtime": "python3.8",
+        "s3_bucket": "zappa-0j40o5lsu"
     },
     "dev_ap_east_1": {
         "aws_region": "ap-east-1",
@@ -71,8 +71,8 @@
         "aws_region": "sa-east-1",
         "extends": "dev"
     },
-    "dev_us_east_2": {
-        "aws_region": "us-east-2",
+    "dev_us_east_1": {
+        "aws_region": "us-east-1",
         "extends": "dev"
     },
     "dev_us_gov_east_1": {
