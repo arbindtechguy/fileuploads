@@ -1,4 +1,4 @@
-#!/home/arbindtechguy/repos/fileuploads/env/bin/python
+#!/var/www/fileuploads/env/bin/python
 
 import sys
 import json

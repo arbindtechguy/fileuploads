@@ -1,15 +1,25 @@
 {% extends 'upload/base.html' %}
-
 {% load static %}
 {% block content %}
-<ul class="list-group list-group-flush">
-    {% for name in files %}
-        <li class="list-group-item">{{ name }}</li>
-    {% endfor %}
-  </ul>
 
-  <form method="post" action="/clearGallery">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js" integrity="sha512-nOQuvD9nKirvxDdvQ9OMqe2dgapbPB7vYAMrzJihw5m+aNcf0dX53m6YxM4LgA9u8e9eg9QX+/+mPu8kCNpV2A==" crossorigin="anonymous"></script>
+<script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.12.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/BrowserFS/2.0.0/browserfs.min.js" integrity="sha512-mz0EI+Ay1uIJP7rZEX8C/JlTAcHRIQ8Sny4vxmmj8MSzDJgG9NxxY2pUmOGv1lO7imFIFMyjjCzEXEywNgaUdQ==" crossorigin="anonymous"></script>
+<script src="{% static 'js/uploads.js' %}" type="text/javascript"></script>
+
+<div class=" container">
+    {% for name in files %}
+        {% csrf_token %}
+    <div class="container row">
+        <div class="list-group-item col-6">{{ name }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+  <!-- <form method="post" action="/clearGallery" class="mt-5">
       {% csrf_token %}
       <button type="submit" id="upload" class="btn btn-danger">全てのファイルを削除する。</button>
-  </form>
+  </form> -->
 {% endblock %}
+
+

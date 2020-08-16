@@ -3,59 +3,212 @@
 {% load static %}
 {% block content %}
 <style>
-th {
-    width: 170px;
-}
+    th {
+        width: 170px;
+    }
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"
+    integrity="sha512-nOQuvD9nKirvxDdvQ9OMqe2dgapbPB7vYAMrzJihw5m+aNcf0dX53m6YxM4LgA9u8e9eg9QX+/+mPu8kCNpV2A=="
+    crossorigin="anonymous"></script>
+<script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.12.min.js"></script>
+
 <script>
-$( document ).ready(function() {
-    $('#file').bind('change', function() {
-        if (this.files[0].size > 100000000) {
-            alert("※アップロート可能なファイルサイズは 100MB まで とします");
-            $('#file').val('');
-        }
+    $(document).ready(function () {
+        $('#file').bind('change', function () {
+            if (this.files[0].size > 100000000) {
+                alert("※アップロート可能なファイルサイズは 100MB まで とします");
+                $('#file').val('');
+            }
+        });
     });
-});
 </script>
-<script type="text/javascript"> window.CSRF_TOKEN = "{{ csrf_token }}"; </script>
+<script type="text/javascript">
+    window.CSRF_TOKEN = "{{ csrf_token }}";
+</script>
 
 
 {% if messages %}
-{% for msg in messages %} 
-    <div class="alert alert-{{ msg.tags }}" role="alert">
-        {{ msg.message }}
-        
-    </div>
-    {% endfor %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }}" role="alert">
+    {{ msg.message }}
+</div>
+{% endfor %}
 {% endif %}
 
 
-
-<form method="post" enctype="multipart/form-data" id="form" action="{% url 'upload:handleUpload' %}">
+<form method="post" enctype="multipart/form-data" id="form">
     {% csrf_token %}
+    ファイルをアップロードする
+    <table class="table ">
+        <tbody>
+            <tr>
+                <th>
+                    <br>
+                    ファイルを選択
+                </th>
+                <td><input class="btn btn-secondary col-12 col-md-6" type="file" accept="video/mp4" id="file" name="file" required>
+                    <p id="file-info" class="text-info m-0 ml-3">※最大サイズ：100MB</p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row" align="right">n個に分割</th>
+                <th scope="row"><input class="form-control col-12 col-md-6" type="number" name="parts" id="parts"></th>
+            </tr>
 
-        ファイルをアップロードする
-        <table class="table ">
+            <tr align="center">
+                <td colspan="2">
+                    <button type="button" id="upload" class="btn btn-primary">アップロード</button>
+                    <button type="button" class="btn btn-secondary cancel d-none">ページリロード</button>
+                </td>
+            </tr>
 
-            <tbody>
-                <tr>
-                    <th>ファイルを選択</th>
-                    <td><input class="btn btn-secondary col-12 col-md-6" type="file" id="file" name="file" required><p id="file-info" class="text-info m-0 ml-3">※最大サイズ：100MB</p></td>
-                </tr>
-                <tr>
-                    <th scope="row" align="right">n個に分割</th>
-                    <th scope="row"><input class="form-control col-12 col-md-6" type="number" name="parts" ></th>
-                </tr>
-
-                <tr align="center">
-                    <td colspan="2">
-                        <button type="submit" id="upload" class="btn btn-primary">アップロード</button>
-                        <button type="button" class="btn btn-secondary">キャンセル</button>
-                    </td>
-                </tr>
-
-            </tbody>
-          </table>
+        </tbody>
+    </table>
 </form>
 
+<script>
+    var s3 = new AWS.S3({
+        accessKeyId: 'AKIAJ7ESAC3NFWRRAC4A',
+        secretAccessKey: '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',
+        signatureVersion: 'v4',
+        region: 'us-east-2'
+    });
+
+    var bucketName = 'uploadfolder'
+    $(document).ready(function () {
+
+        function gallery() {
+            const params = {
+                Bucket: bucketName,
+                MaxKeys: 20,
+                Delimiter: '/',
+            };
+            s3.listObjects(params, function (err, data) {
+                if (err) throw err;
+                return (data.CommonPrefixes);
+            });
+        }
+
+        gallery();
+
+        var parts = 10
+        $('#parts').change(function () {
+            if ($(this).val() != '') {
+                parts = $(this).val()
+            }
+        });
+
+        $('#upload').on('click', function (e) {
+            $('#upload').hide();
+            key = $('#file').val().split('\\').pop()
+            sendFile(key);
+        });
+
+        function sendFile(fileName) {
+            $('.cancel').removeClass('d-none')
+            var theFormFile = $('#file').get()[0].files[0];
+            slices = getSlicedFile(theFormFile, parts);
+            uploadSlices(theFormFile, slices)
+            
+        }
+
+        function uploadSlices(f, slices) {
+
+            var params = {
+                Bucket: bucketName,
+                Key: f.name + '/',
+            };
+            // フォルダーを作る
+            s3.headObject(params, function (err, data) {
+                if (err) {
+                    console.log('古いレコードが見つかりません');
+                    var params = {
+                        Bucket: bucketName,
+                        Key: f.name + '/',
+                        ACL: 'public-read',
+                        Body: 'test'
+                    };
+
+                    s3.upload(params, function (err, data) {
+                        if (err) {
+                            console.log("Error creating the folder: ", err);
+                        } else {
+                            //upload files
+                            $(slices).each(function (i, blobs) {
+                                var uploadPreSignedUrl = s3.getSignedUrl('putObject', {
+                                    Bucket: bucketName,
+                                    Key: f.name + '/' + i,
+                                    ACL: 'authenticated-read',
+                                    ContentType: 'binary/octet-stream'
+                                });
+                                requestUpload(blobs, uploadPreSignedUrl, i)
+                            });
+                        }
+                    });
+
+                } else {
+                    console.log('途中から再開:');
+                    $(slices).each(function (i, blobs) {
+                        console.log(blobs)
+                        sliceName = f.name + '/' + i
+                        params = {
+                            Bucket: bucketName,
+                            Key: sliceName
+                        }
+                        s3.headObject(params, function (err, data) {
+                            if (err || (data.ContentLength != blobs.size)) {
+                                console.log("ファイルのアップロード[再開]:" + i)
+                                uploadPreSignedUrl = s3.getSignedUrl('putObject', {
+                                    Bucket: bucketName,
+                                    Key: f.name + '/' + i,
+                                    ACL: 'authenticated-read',
+                                    ContentType: 'binary/octet-stream'
+                                });
+                                requestUpload(blobs, uploadPreSignedUrl, i)
+                            } else {
+                                console.log("ファイルが見つかりました[スキップ]:" + i)
+                            }
+                        })
+                    });
+                }
+            })
+            return true
+        }
+
+        function getSlicedFile(f, parts) {
+            var byteIndex = 0;
+            var chunks = [];
+            for (var i = 0; i < parts; i += 1) {
+                var byteEnd = Math.ceil((f.size / parts) * (i + 1));
+                chunks.push(f.slice(byteIndex, byteEnd));
+                byteIndex += (byteEnd - byteIndex);
+            }
+            return chunks;
+        }
+
+        function requestUpload(theFormFile, uploadPreSignedUrl, partNumer) {
+            $.ajax({
+                type: 'PUT',
+                url: uploadPreSignedUrl,
+                contentType: 'binary/octet-stream',
+                processData: false,
+                data: theFormFile,
+                success: function () {
+                    console.log('アップロードされた部分:', partNumer)
+                    $('#upload').show();
+                },
+                error: function () {
+                    console.log('Error' + arguments);
+                }
+            });
+        }
+
+        $('.cancel').click(function() {
+            if (confirm('キャンセルしてもよろしいですか')) {
+                location.reload();
+            }
+        })
+    });
+</script>
 {% endblock %}

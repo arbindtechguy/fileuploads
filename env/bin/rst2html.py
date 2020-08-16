@@ -1,4 +1,4 @@
-#!/home/arbindtechguy/repos/fileuploads/env/bin/python
+#!/var/www/fileuploads/env/bin/python
 
 # $Id: rst2html.py 4564 2006-05-21 20:44:42Z wiemann $
 # Author: David Goodger <goodger@python.org>

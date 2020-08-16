@@ -1,4 +1,4 @@
-#!/home/arbindtechguy/repos/fileuploads/env/bin/python
+#!/var/www/fileuploads/env/bin/python
 
 # $Id: rst2xetex.py 7847 2015-03-17 17:30:47Z milde $
 # Author: Guenter Milde

@@ -1,0 +1,61 @@
+{% extends 'upload/base.html' %}
+
+{% load static %}
+{% block content %}
+<style>
+th {
+    width: 170px;
+}
+</style>
+<script>
+$( document ).ready(function() {
+    $('#file').bind('change', function() {
+        if (this.files[0].size > 100000000) {
+            alert("※アップロート可能なファイルサイズは 100MB まで とします");
+            $('#file').val('');
+        }
+    });
+});
+</script>
+<script type="text/javascript"> window.CSRF_TOKEN = "{{ csrf_token }}"; </script>
+
+
+{% if messages %}
+{% for msg in messages %} 
+    <div class="alert alert-{{ msg.tags }}" role="alert">
+        {{ msg.message }}
+        
+    </div>
+    {% endfor %}
+{% endif %}
+
+
+
+<form method="post" enctype="multipart/form-data" id="form" action="{% url 'upload:handleUpload' %}">
+    {% csrf_token %}
+
+        ファイルをアップロードする
+        <table class="table ">
+
+            <tbody>
+                <tr>
+                    <th>ファイルを選択</th>
+                    <td><input class="btn btn-secondary col-12 col-md-6" type="file" id="file" name="file" required><p id="file-info" class="text-info m-0 ml-3">※最大サイズ：100MB</p></td>
+                </tr>
+                <tr>
+                    <th scope="row" align="right">n個に分割</th>
+                    <th scope="row"><input class="form-control col-12 col-md-6" type="number" name="parts" ></th>
+                </tr>
+
+                <tr align="center">
+                    <td colspan="2">
+                        <button type="submit" id="upload" class="btn btn-primary">アップロード</button>
+                        <button type="button" class="btn btn-secondary">キャンセル</button>
+                    </td>
+                </tr>
+
+            </tbody>
+          </table>
+</form>
+
+{% endblock %}

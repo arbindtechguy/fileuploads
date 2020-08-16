@@ -1,4 +1,4 @@
-#!/home/arbindtechguy/repos/fileuploads/env/bin/python
+#!/var/www/fileuploads/env/bin/python
 # PYTHON_ARGCOMPLETE_OK
 
 # Copyright 2012-2019, Andrey Kislyuk and argcomplete contributors.
